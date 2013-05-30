@@ -1,0 +1,4 @@
+pypaste
+=======
+
+pastebin checking script
