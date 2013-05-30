@@ -14,9 +14,25 @@ import sys
 import time
 import urllib
 import re
+import ConfigParser
+import argparse
+
+config = ConfigParser.RawConfigParser()
+
+def CreateConfigDefaults():
+	config.add_section('johndoe@email.com')
+	config.set('johndoe@email.com', 'searchterms', 'bla bla bla searchterms')
+        config.add_section('anothersection')
+        config.set('anothersection', 'searchterms', 'some other shit I need to look for')
+	with open('pypaste.cfg', 'wb') as cfgfile:
+		config.write(cfgfile)
+
+argparser = argparse.ArgumentParser(description = 'Pastebin&Co. string checker script')
+argparser.add_argument('-c', '--config', type=str, default='pypaste.cfg', help='/path/to/config.cfg ; it defaults to \'pypaste.cfg\' in the same path as the script')
+argparser.add_argument('-d', '--debug', type=bool, default=False, action='store_true', help='Debug mode(1=True, 0=False), defaults to False')
+argparser.add_argument('
 
 # User-defined variables
-time_between = 7       #Seconds between iterations (not including time used to fetch pages - setting below 5s may cause a pastebin IP block, too high may miss pasties)
 error_on_cl_args = "Please provide a single regex search via the command line"   #Error to display if improper command line arguments are provided
 archive_url = "http://pastebin.com/archive"    #whether you wanna scan the normal archive (you're lucky to grab the latest 10 minutes worth of pasties)
 trending_url = "http://pastebin.com/trends"    #best to scan is the trending pasties page, since you can see the most 'popular' stuff which is more important anyway.
