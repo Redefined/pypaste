@@ -54,7 +54,7 @@ def checkconfigfile():
         debug("Opening the config file failed")
         sys.exit(e)
     if tmpfile:
-        info("found config file")
+        info("found config file: " + path)
         debug("Config file exists and we can open it")
         return tmpfile
 
@@ -94,16 +94,8 @@ def checkconfig_siteurls(site, config):
 
 def checkconfig_searchterms(config):
     searchterm_list = []
-    searchterm_list.append(config.get('search', 'term1'))
-    searchterm_list.append(config.get('search', 'term2'))
-    searchterm_list.append(config.get('search', 'term3'))
-    searchterm_list.append(config.get('search', 'term4'))
-    searchterm_list.append(config.get('search', 'term5'))
-    searchterm_list.append(config.get('search', 'term6')) 
-    searchterm_list.append(config.get('search', 'term7'))
-    searchterm_list.append(config.get('search', 'term8'))
-    searchterm_list.append(config.get('search', 'term9'))
-    searchterm_list.append(config.get('search', 'term10'))
+    for option in config.options('search'):
+        searchterm_list.append(config.get('search', option))
     return searchterm_list
 
 ###
@@ -116,16 +108,22 @@ def search_raw(needle, haystack, linkid):
 
 
 def read_site(url, matchstr, paste_ids_position):
+    raw_paste = ''
+    link_id = ''
+    info('read_site() got called with url: ' + url)
     try:
+        info("we're in the try open url block")
         lnk = urllib.urlopen(url)
         htm = lnk.read()
         lnk.close()
         htm_lines = htm.split('\n')
+        info(htm_lines)
         for line in htm_lines:
             if re.search(matchstr, line):
                 link_id = line[paste_ids_position]
                 debug('Link_id: ' + link_id)
                 if re.search('pastebin', url):
+                    crit('we\'re on pastebin.com')
                     url_2 = urllib.urlopen("http://pastebin.com/raw.php?i=" + link_id)
                 else:
                     url_2 = urllib.urlopen("http://pastie.org/pastes/" + link_id + "/text")
@@ -142,7 +140,6 @@ def read_site(url, matchstr, paste_ids_position):
 
 if __name__ == "__main__":
     global args, regex_weblink_string, paste_ids_position
-    config = init_config()
     argparser = argparse.ArgumentParser(description='Pastebin&Co. string checker script')
     argparser.add_argument('-c', '--config', type=str, default='pypaste.cfg', help='/path/to/config.cfg ; it defaults to \'pypaste.cfg\' in the same path as the script')
     argparser.add_argument('-d', '--debug', default=False, action='store_true', help='Debug mode(1=True, 0=False), defaults to False')
@@ -162,19 +159,22 @@ if __name__ == "__main__":
 
     checkconfig_value('dryrun', config)
     checkconfig_value('debug', config)
-    if not args.searchterm and not checkconfig_value('term1'): #  we should have at least one search term either coming from the config file or the command line, otherwise bail with crit exit(2)
+    if not args.searchterm and not checkconfig_value('term1', config): #  we should have at least one search term either coming from the config file or the command line, otherwise bail with crit exit(2)
         crit('no searchterms specified')
     else:
         info('searchterms are:')
+        searchterms = checkconfig_searchterms(config)
+        for term in searchterms:
+            info('\t' + term)
     dryrun = config.get('system','dryrun')
-    print dryrun
-    counter = 0
+    info('dryrun is: ' + dryrun)
 
     # main loop basically
-    if not dryrun:
-        for url in checkconfig_siteurls('pastebin'):
-            paste_ids_position = config.get('pastebin','paste_ids_position')
-            matchstrings = '\'' + config.get('pastebin','paste_ids_match_string') + '\''  # shit like '<td><img src=\"/i/t.gif\"  class=\"i_p0\" alt=\"\" border=\"0\" /><a href=\"/[0-9a-zA-Z]{8}">.*</a></td>' from config, site dependent, obviously
-            raw, linkid = read_site(url, matchstrings)  
-            for item in searchterms:
-                search_raw(item, raw, linkid)
+    print 'entered main loop'
+    for url in checkconfig_siteurls('pastebin', config):
+        info('main loop url read from config: ' + url)
+        paste_ids_position = config.get('pastebin','paste_ids_position')
+        matchstrings = '\'' + config.get('pastebin','paste_ids_match_string') + '\''  # shit like '<td><img src=\"/i/t.gif\"  class=\"i_p0\" alt=\"\" border=\"0\" /><a href=\"/[0-9a-zA-Z]{8}">.*</a></td>' from config, site dependent, obviously
+        raw, linkid = read_site(url, matchstrings, paste_ids_position)  
+        for item in searchterms:
+            search_raw(item, raw, linkid)
