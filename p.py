@@ -117,13 +117,12 @@ def read_site(url, matchstr, paste_ids_position):
         htm = lnk.read()
         lnk.close()
         htm_lines = htm.split('\n')
-        info(htm_lines)
         for line in htm_lines:
             if re.search(matchstr, line):
                 link_id = line[paste_ids_position]
-                debug('Link_id: ' + link_id)
+                info('Link_id: ' + link_id)
                 if re.search('pastebin', url):
-                    crit('we\'re on pastebin.com')
+                    info('we\'re on pastebin.com')
                     url_2 = urllib.urlopen("http://pastebin.com/raw.php?i=" + link_id)
                 else:
                     url_2 = urllib.urlopen("http://pastie.org/pastes/" + link_id + "/text")
@@ -131,8 +130,6 @@ def read_site(url, matchstr, paste_ids_position):
                 url_2.close()
     except(IOError):
         print("can\'t connect to url: %s" % url)
-    except:
-        print('fatal exception... bailing out')
     return (raw_paste, link_id)
 
 
