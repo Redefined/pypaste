@@ -72,23 +72,18 @@ def checkconfig_value(val, config):
     for section in config.sections():
         if config.has_option(section, val):
             found = True
-    if found == False:
+    if not found:
         crit("one of the critical keys was not present in the config file: %s" % val)
         debug("\t%s value not found" % val)
         return False
-        sys.exit(2)
     else:
         return True
 
 
 def checkconfig_siteurls(site, config):
-    url_list = []
-    url_list.append(config.get(site,'latest_url'))
-    url_list.append(config.get(site,'trends_now_url'))
-    url_list.append(config.get(site,'trends_week_url'))
-    url_list.append(config.get(site,'trends_month_url'))
-    url_list.append(config.get(site,'trends_year_url'))
-    url_list.append(config.get(site,'trends_all_url'))
+    url_list = [config.get(site, 'latest_url'), config.get(site, 'trends_now_url'), config.get(site, 'trends_week_url'),
+                config.get(site, 'trends_month_url'), config.get(site, 'trends_year_url'),
+                config.get(site, 'trends_all_url')]
     return url_list
 
 
@@ -128,27 +123,24 @@ def read_site(url, matchstr, paste_ids_position):
                     url_2 = urllib.urlopen("http://pastie.org/pastes/" + link_id + "/text")
                 raw_paste = url_2.read()
                 url_2.close()
-    except(IOError):
+    except IOError:
         print("can\'t connect to url: %s" % url)
-    return (raw_paste, link_id)
-
-
+    return raw_paste, link_id
 
 
 if __name__ == "__main__":
     global args, regex_weblink_string, paste_ids_position
     argparser = argparse.ArgumentParser(description='Pastebin&Co. string checker script')
-    argparser.add_argument('-c', '--config', type=str, default='pypaste.cfg', help='/path/to/config.cfg ; it defaults to \'pypaste.cfg\' in the same path as the script')
-    argparser.add_argument('-d', '--debug', default=False, action='store_true', help='Debug mode(1=True, 0=False), defaults to False')
-    argparser.add_argument('-s', '--searchterm', type=str, help='the search term you want to look for on these paste sites')
+    argparser.add_argument('-c', '--config', type=str, default='pypaste.cfg',
+                           help='/path/to/config.cfg ; it defaults to \'pypaste.cfg\' in the same path as the script')
+    argparser.add_argument('-d', '--debug', default=False, action='store_true',
+                           help='Debug mode(1=True, 0=False), defaults to False')
+    argparser.add_argument('-s', '--searchterm', type=str,
+                           help='the search term you want to look for on these paste sites')
     args = argparser.parse_args()
     if not checkconfigfile():
         exit(2)
     cfg = init_config()
-
-    # User-defined variables, to be moved in config file under [system] section, and urls under [pastebin.com] and so on sections.
-    archive_url = "http://pastebin.com/archive"    # whether you wanna scan the normal archive (you're lucky to grab the latest 10 minutes worth of pasties)
-    trending_url = "http://pastebin.com/trends"    # best to scan is the trending pasties page, since you can see the most 'popular' stuff which is more important anyway.
 
     if args.searchterm and not args.config:  # if you only specify -searchterm and don't specify explicitly a config file it means you want only that term searched, ignoring rest of terms in config.
         search_term = args.searchterm
@@ -156,22 +148,27 @@ if __name__ == "__main__":
 
     checkconfig_value('dryrun', config)
     checkconfig_value('debug', config)
-    if not args.searchterm and not checkconfig_value('term1', config): #  we should have at least one search term either coming from the config file or the command line, otherwise bail with crit exit(2)
-        crit('no searchterms specified')
+    srch_terms = ''
+    if not (args.searchterm or checkconfig_value('term1',
+                                                 config)): #  we should have at least one search term either coming from the config file or the command line, otherwise bail with crit exit(2)
+        crit('no search terms specified')
     else:
-        info('searchterms are:')
-        searchterms = checkconfig_searchterms(config)
-        for term in searchterms:
+        info('search terms are:')
+        srch_terms = checkconfig_searchterms(config)
+        for term in srch_terms:
             info('\t' + term)
-    dryrun = config.get('system','dryrun')
+    dryrun = config.get('system', 'dryrun')
     info('dryrun is: ' + dryrun)
 
     # main loop basically
     print 'entered main loop'
     for url in checkconfig_siteurls('pastebin', config):
+        time.sleep(10)
         info('main loop url read from config: ' + url)
-        paste_ids_position = config.get('pastebin','paste_ids_position')
-        matchstrings = '\'' + config.get('pastebin','paste_ids_match_string') + '\''  # shit like '<td><img src=\"/i/t.gif\"  class=\"i_p0\" alt=\"\" border=\"0\" /><a href=\"/[0-9a-zA-Z]{8}">.*</a></td>' from config, site dependent, obviously
-        raw, linkid = read_site(url, matchstrings, paste_ids_position)  
-        for item in searchterms:
+        paste_ids_position = config.get('pastebin', 'paste_ids_position')
+        matchstrings = '\'' + config.get('pastebin',
+                                         'paste_ids_match_string') + '\''  # shit like '<td><img src=\"/i/t.gif\"  class=\"i_p0\" alt=\"\" border=\"0\" /><a href=\"/[0-9a-zA-Z]{8}">.*</a></td>' from config, site dependent, obviously
+        raw, linkid = read_site(url, matchstrings, paste_ids_position)
+        time.sleep(2)
+        for item in srch_terms:
             search_raw(item, raw, linkid)
