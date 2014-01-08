@@ -12,9 +12,9 @@
 
 import sys
 import time
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import re
-import ConfigParser
+import configparser
 import argparse
 
 
@@ -49,7 +49,7 @@ def checkconfigfile():
         path = "pypaste.cfg"  # defaults to this file in the same folder as the script
     try:
         tmpfile = open(path)
-    except IOError, e:
+    except IOError as e:
         crit("cannot open configuration file ")
         debug("Opening the config file failed")
         sys.exit(e)
@@ -61,7 +61,7 @@ def checkconfigfile():
 
 def init_config():
     global config, args
-    config = ConfigParser.ConfigParser()
+    config = configparser.ConfigParser()
     config.read(args.config)
     return config
 
@@ -90,7 +90,7 @@ def checkconfig_siteurls(site, config):
 def checkconfig_searchterms(config):
     searchterm_list = []
     for option in config.options('search'):
-        searchterm_list.append(config.get('search', option))
+        searchterm_list.append(config.get('search', option)
     return searchterm_list
 
 ###
@@ -108,7 +108,7 @@ def read_site(url, matchstr, paste_ids_position):
     info('read_site() got called with url: ' + url)
     try:
         info("we're in the try open url block")
-        lnk = urllib.urlopen(url)
+        lnk = urllib.request.urlopen(url)
         htm = lnk.read()
         lnk.close()
         htm_lines = htm.split('\n')
@@ -118,9 +118,9 @@ def read_site(url, matchstr, paste_ids_position):
                 info('Link_id: ' + link_id)
                 if re.search('pastebin', url):
                     info('we\'re on pastebin.com')
-                    url_2 = urllib.urlopen("http://pastebin.com/raw.php?i=" + link_id)
+                    url_2 = urllib.request.urlopen("http://pastebin.com/raw.php?i=" + link_id)
                 else:
-                    url_2 = urllib.urlopen("http://pastie.org/pastes/" + link_id + "/text")
+                    url_2 = urllib.request.urlopen("http://pastie.org/pastes/" + link_id + "/text")
                 raw_paste = url_2.read()
                 url_2.close()
     except IOError:
@@ -150,7 +150,7 @@ if __name__ == "__main__":
     checkconfig_value('debug', config)
     srch_terms = ''
     if not (args.searchterm or checkconfig_value('term1',
-                                                 config)): #  we should have at least one search term either coming from the config file or the command line, otherwise bail with crit exit(2)
+                                                 config): #  we should have at least one search term either coming from the config file or the command line, otherwise bail with crit exit(2)
         crit('no search terms specified')
     else:
         info('search terms are:')
@@ -161,7 +161,7 @@ if __name__ == "__main__":
     info('dryrun is: ' + dryrun)
 
     # main loop basically
-    print 'entered main loop'
+    print('entered main loop')
     for url in checkconfig_siteurls('pastebin', config):
         time.sleep(10)
         info('main loop url read from config: ' + url)
